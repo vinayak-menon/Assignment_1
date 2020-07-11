@@ -1,30 +1,19 @@
 ---
-title: "A01-Regression"
-author: "Vinayak B. Menon"
-date: "7/8/2020"
-output: pdf_document
+title: "MBA 6693 Business Analytics"
+author: 'Name: Vinayak B. Menon'
+date: "11/07/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+subtitle: 'Assignment 1: Regression Models' 
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+\textbf{Objective:}\
 
-## R Markdown
+This report aims to study the significance of location when considering the number of sales of child car seats, based on the Carseats data in R. Our analysis will focus on where the most car seats number are sold based on whether the store location is in the US or abroad. We will also consider a classification based on urban or rural locations. By the end of this study, we aim to establish whether or not there is any significance in store location, and if so, where it significance lies most, with respect to the number of child car seats.\
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+We will first explore the Carseats dataset provided, which would include cleaning the data and establishing any patterns through graphical tools. We then proceed to create a multivariate regression model using all the factors included, and study the efficiency of the model. To reduce the complexity and strengthen the model, we will perform a backward step regression. Finally we compare all considered models in terms of their explanatory power and fit, and check how much the location variables influence the number of car seats that are sold at the store.\
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+\textbf{Data Exploration:}\
