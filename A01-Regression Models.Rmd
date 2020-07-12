@@ -10,10 +10,147 @@ output:
 subtitle: 'Assignment 1: Regression Models' 
 ---
 
+```{r setup,echo=FALSE,warning=FALSE}
+rm(list=ls())
+library(psych)
+library(ISLR)
+library(data.table)
+#datatable Carseats data
+carseats <- as.data.frame(Carseats,stringasFactors=FALSE)
+carseats <- carseats[,c(-2,-3,-5,-8,-9)]
+carseats$Urban <- as.character(carseats$Urban)
+carseats$ShelveLoc <- as.character(carseats$ShelveLoc)
+carseats$US <- as.character(carseats$US)
+```
+
+
 \textbf{Objective:}\
 
-This report aims to study the significance of location when considering the number of sales of child car seats, based on the Carseats data in R. Our analysis will focus on where the most car seats number are sold based on whether the store location is in the US or abroad. We will also consider a classification based on urban or rural locations. By the end of this study, we aim to establish whether or not there is any significance in store location, and if so, where it significance lies most, with respect to the number of child car seats.\
+This report aims to study the significance of location when considering the number of sales of child car seats, based on the $Carseats$ data in R. Our analysis will focus on where the most car seats number are sold based on whether the store location is in the US or abroad. We will also consider a classification based on urban or rural locations. By the end of this study, we aim to establish whether or not there is any significance in store location, and if so, where it significance lies most, with respect to the number of child car seats.\
 
-We will first explore the Carseats dataset provided, which would include cleaning the data and establishing any patterns through graphical tools. We then proceed to create a multivariate regression model using all the factors included, and study the efficiency of the model. To reduce the complexity and strengthen the model, we will perform a backward step regression. Finally we compare all considered models in terms of their explanatory power and fit, and check how much the location variables influence the number of car seats that are sold at the store.\
+We will first explore the $Carseats$ dataset provided, which would include cleaning the data and establishing any patterns through graphical tools. We then proceed to create a multivariate regression model using some of the factors and study the efficiency of the model. To reduce the complexity and strengthen the model, we will perform a backward step regression. Finally we compare all considered models in terms of their explanatory power and fit, and check how much the location variables influence the number of car seats that are sold at the store.\
 
 \textbf{Data Exploration:}\
+
+ The $Carseats$ data consists of 400 observations from different stores, with coloumns representing the unit sales in thousands at each location $Sales$, the local advertising budget for the company at each location in thousands of dollars $Advertising$, price charged by the store for the car seat at each location $Price$, quality of the shelving location for the car seats at each store location $ShelvLoc$, location of store in terms of urban and rural $Urban$ and the location of the store in terms of whether it is situated in the US $US$. Of these factors, $Urban$, $US$ and $ShelvLoc$ are categorical while the rest are numeric in nature.\
+ 
+ We can first convert the boolean results for $Urban$, $ShelvLoc$ and $US$ to digits. Since $ShelvLoc$ consists of three indicators, Good, Bad and Medium, we will convert them to 1,-1 and 0 respectively. $Urban$ and $US$ can be converted to binary forms since they present boolean results.
+```{r 1_1}
+#converting Urban to numeric
+carseats$Urban[carseats$Urban =="Yes"] <- 1
+carseats$Urban[carseats$Urban =="No"] <- 0
+carseats$Urban <- as.numeric(carseats$Urban)
+#converting US to numeric
+carseats$US[carseats$US =="Yes"] <- 1
+carseats$US[carseats$US =="No"] <- 0
+carseats$US <- as.numeric(carseats$US)
+#converting ShelvLoc to numeric
+carseats$ShelveLoc[carseats$ShelveLoc=="Good"] <-1
+carseats$ShelveLoc[carseats$ShelveLoc=="Bad"] <--1
+carseats$ShelveLoc[carseats$ShelveLoc=="Medium"] <-0
+carseats$ShelveLoc <- as.numeric(carseats$ShelveLoc)
+```
+
+Now that we have transformed the categorical inputs to a usable format, the next step would be to normalize the numeric independent variables $Price$ and $Advertising$. This is to avoid disparate coefficients from arising in the regression process. We leave the $Sales$ information as it is since the intercept can adjust accordingly.\
+```{r 1_2}
+for (i in c(2,3)) {
+  carseats[,i] <- (carseats[,i]-mean(carseats[,i]))/sd(carseats[,i])
+}
+```
+
+We now plot the histograms for each of the numeric independent factors to see if there are any widely deviating values:
+```{r 1_3}
+#histogram output
+par(mfrow=c(3,1))
+hist(carseats$Sales,xlab = "Sales",main = "Histogram")
+hist(carseats$Advertising,xlab = "Advertising",main = "")
+hist(carseats$Price,xlab = "Price",main = "")
+```
+ The values are comparable. Now we create a scatterplot matrix embedded with correlation plots and values. This is possible using the pairs.panel() function using the $psych$ package.
+```{r 1_4}
+#paired plots
+pairs.panels(carseats, 
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,  # show density plots
+             main="Scatter plots of Carseats data",)
+```
+ Most of the correlations are quite moderate or low and we can assume that these variables do not have much dependence. Note that there is a visible downward trend in the $scatterplot$ between Sales and $Price$.\
+ 
+\textbf{Modelling:}\
+
+As mentioned initially, we will first create a model that encompasses all the dependent features to predict $Sales$, after which we will remove insignficant variables:
+```{r 2_1}
+#Model 1,
+model <- lm(Sales~ Advertising+Price+Urban+US+ShelveLoc,data = carseats)
+summary(model)
+```
+This initial model has a moderately good $R^2$ value (60.03%) suggesting that it manages to explain a considerable amount of the variance. Yet we can see that there is room for improvement as two of the variables do not have any significant effect on the sales of the child car seats, based on their high p-values. We move on to seeing if removing any one can bring a difference to the model.\
+
+```{r 2_2}
+#Proto model 1
+model_11 <- lm(Sales~ Advertising+Price+US+ShelveLoc,data = carseats)
+summary(model_11)
+```
+Removing $Urban$ has slightly lowered the $R^2$ to 59.88%, with a marginal decrease in the residual standard error. The $US$ variable provides no contribution to the model with a low coefficient and the significance is still not considerable. We check below if removing $US$ while retaining $Urban$
+provides any different results.
+```{r 2_3}
+#Proto model 2
+model_12 <- lm(Sales~ Advertising+Price+Urban+ShelveLoc,data = carseats)
+summary(model_12)
+```
+As with the previous model, removing $US$ does not show any significant changes. We thus proceed to excluding both of them from our upcoming models. Since the remaining variables provide significant contribution in explaining the $Sales$ variable, we can retain them to create our first possible model to verify.
+```{r 2_4}
+#Model 1
+model_1 <- lm(Sales~ Advertising+Price+ShelveLoc,data = carseats)
+summary(model_1)
+```
+The results are the same as our initial model. What we can infer from Model 1 is the relationships between $Sales$ and the considered dependent variables. We see that $ShelvLoc$ seems to have a significant effect on sales of child car seats at a given store with a positive relationship. Specifically, a $Good$ shelving quality can increase the number of sales by 2369 units whereas a $Bad$ can reduce the number of sales by the same amount. Since $Medium$ is associated with 0, the contribution would be included in the intercept.\
+
+The second biggest contribution comes from $Price$, which has a negative relationship with the no. of sales. This was visually noticeable in the scatterplot as previouslt mentioned. A unit increase in the price (i.e a 1000 dollar increase in price) of the car seat can lead to a decrease in sales by 1370.\
+
+Finally, $Advertising$ shows a positive relationshio with the number of units of carseats sold. It shows that a 1000$ increase in advertising expenditure can lead to 731 units increase in sales.\
+
+We will consider the second model to be one with $Advertising$ excluded. We exclude this factor since the contribution is the lowest, while the significance, although quite strong, is less as compared to the remaining two dependent variables. We will then observe if there is any improvement or negative effects on the model.
+
+```{r 2_5}
+#Model 2
+model_2 <- lm(Sales~Price+ShelveLoc,data = carseats)
+summary(model_2)
+```
+The new model doesn not show any improvement. Rather there is a significant decrease in performance, as the $R^2$ drops from 60% to 53%, while the $RSE$ increases from 1.7 to 1.9. It is safe to say then that advertising does play a good role in the number of units sold, suggesting that Model 1 is superior.\
+
+We conclude our modelling process with one more model, making use of logarithmic transformations on the continuous dependent variables, with the hope that it may provide some better results by working on tightly packed data.
+```{r 2_6}
+#Model 3
+model_3 <- lm(Sales~log(Advertising)+log(Price)+ShelveLoc,data = carseats)
+summary(model_3)
+```
+The $R^2$ is slightly lowered as compared to Model 1, though the $RSE$ lowers from 1.79 to 1.74 as well. There is no particularly drastic change upon log transformation as well. All that is left is to check the residual plots for any additional information.
+
+```{r 3_1}
+par(mfrow=c(2,2))
+plot(model_1)
+plot(model_2)
+plot(model_3)
+```
+Based on the QQ plots, the residuals from all 3 models seem to closely fit the normal distribution as they lie on the straight line. Thus there is no difference in terms of residual distributionfit.\
+
+If we look at the residuals vs fitted graphs as well, there is no major differences among the models as all three are close to the central line. Infact all the residual plots seem to have very similar characteristics, showcasing that not much disparities can be gleamed from them to eliminate any of the three models.\
+
+Thus we will choose the ideal model based on the $R^2$ which would be Model 1 with 59% i.e Model 1 explains 59% of the variance in the data considered. We present the scatterplot of the considered factors in the chosen model below as a summary of its characteristics. 
+```{r 2_7}
+pairs.panels(carseats[,c(-5,-6)], 
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,  # show density plots
+             main="Scatter plots of Carseats data")
+```
+
+\textbf{Conclusion}
+
+ We see that the location of the child car seat stores have very little impact on the number of car seats sold. Rather, the price of the car seats, the advertising budget and shelving quality of the stores seems to have the most considerable impact on the number of units sold. Our model consisting of these three variables seem to provide the best possible model in comparison, with a moderately good explanatory power in predicting sales.
+ 
+ 
+ 
+
